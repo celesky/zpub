@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<configuration debug="false">
+
+    <!-- 从yml中读取配置 -->
+    <springProperty scope="context" name="SERVICE_NAME" source="spring.application.name" defaultValue="service.log"/>
+    <springProperty scope="context" name="LOG_PATH" source="logging.path" defaultValue="/data/deploy/log"/>
+    <springProperty scope="context" name="ENV" source="env" defaultValue="unknown"/>
+    <springProperty scope="context" name="INSTANCE_ID" source="instance.instance-id" defaultValue="unknown"/>
+
+    <!-- 日志kafka地址-->
+    <property name="KAFKA-BROKER" value="127.0.0.1:9092" />
+
+    <!-- 控制台输出 -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
+        </encoder>
+        -->
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符-->
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{5} %X{uri} %X{requestId} %X{agentId} - %msg%n</pattern>
+        </layout>
+
+    </appender>
+
+    <!-- https://logback.qos.ch/manual/appenders.html
+        Support multiple-JVM writing to the same log file 按分钟切割
+    <appender name="ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
+
+        <prudent>true</prudent>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/${SERVICE_NAME}.%d{yyyy-MM-dd_HH-mm, UTC}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>3GB</totalSizeCap>
+        </rollingPolicy>
+
+        <encoder>
+            <pattern>%-4relative [%thread] %-5level %logger{35} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    -->
+
+    <!--each file should be at most 100MB, keep 60 days worth of history, but at most 20GB-->
+    <appender name="ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/${SERVICE_NAME}.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/${SERVICE_NAME}.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>200MB</maxFileSize>
+            <maxHistory>60</maxHistory>
+            <totalSizeCap>20GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{5} %X{uri} %X{requestId} %X{agentId} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!--错误日志统一输出到这里-->
+    <appender name="error" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/error.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/error.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>200MB</maxFileSize>
+            <maxHistory>60</maxHistory>
+            <totalSizeCap>20GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符-->
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{5} %X{uri} %X{requestId} %X{agentId} - %msg%n</pattern>
+        </encoder>
+        <!-- 所有error日志都在这里-->
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>ERROR</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+    </appender>
+
+    <!-- This is the kafkaAppender -->
+    <appender name="kafkaAppender" class="com.zuzuche.msa.log.appender.kafka.KafkaAppender">
+        <encoder>
+            <!--<pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>-->
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{5} %X{uri} %X{requestId} %X{agentId} - %msg%n</pattern>
+        </encoder>
+        <topic>cs_sys_log</topic>
+        <keyingStrategy class="com.github.danielwegener.logback.kafka.keying.NoKeyKeyingStrategy" />
+        <deliveryStrategy class="com.github.danielwegener.logback.kafka.delivery.AsynchronousDeliveryStrategy" />
+
+        <!-- Optional parameter to use a fixed partition -->
+        <!-- <partition>0</partition> -->
+
+        <!-- Optional parameter to include log timestamps into the kafka message -->
+        <!-- <appendTimestamp>true</appendTimestamp> -->
+
+        <!-- each <producerConfig> translates to regular kafka-client config (format: key=value) -->
+        <!-- producer configs are documented here: https://kafka.apache.org/documentation.html#newproducerconfigs -->
+        <!-- bootstrap.servers is the only mandatory producerConfig -->
+        <!--<producerConfig>bootstrap.servers=192.168.1.70:9092,192.168.1.71:9092,192.168.1.72:9092</producerConfig>-->
+        <producerConfig>bootstrap.servers=${KAFKA-BROKER}</producerConfig>
+        <!-- this is the fallback appender if kafka is not available. -->
+        <appender-ref ref="STDOUT" />
+    </appender>
+
+    <appender name="asyncKafkaAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="kafkaAppender" />
+    </appender>
+
+
+    <!--myibatis log configure TRACE级别即可输出sql-->
+    <logger name="com.zuzuche.sentry.mapper" level="INFO"/>
+    <logger name="org.apache.kafka" level="ERROR"/>
+    <logger name="io.lettuce" level="ERROR"/>
+
+
+
+    <!-- 日志输出级别 -->
+    <root level="INFO">
+<!--        <appender-ref ref="asyncKafkaAppender" />-->
+        <appender-ref ref="STDOUT" />
+        <appender-ref ref="ROLLING" />
+        <appender-ref ref="error" />
+    </root>
+    <!--日志异步到数据库 -->
+    <!-- <appender name="DB" class="ch.qos.logback.classic.db.DBAppender">
+        日志异步到数据库
+        <connectionSource class="ch.qos.logback.core.db.DriverManagerConnectionSource">
+           连接池
+           <dataSource class="com.mchange.v2.c3p0.ComboPooledDataSource">
+              <driverClass>com.mysql.jdbc.Driver</driverClass>
+              <url>jdbc:mysql://127.0.0.1:3306/databaseName</url>
+              <user>root</user>
+              <password>root</password>
+            </dataSource>
+        </connectionSource>
+  </appender> -->
+</configuration>

@@ -1,0 +1,31 @@
+spring.application.name: zpub-service
+app.id: cs-${spring.application.name}
+server.port: 9091
+env: DEV
+instance.instance-id: ${spring.cloud.client.ip-address}:${server.port}
+
+apollo:
+  bootstrap:
+    enabled: true
+    #多个namespace需要用逗号隔开
+    namespaces: |
+      KEFU.kafka-base,KEFU.redis-base,KEFU.eureka-base,KEFU.actuator-base,CS.mysql-base,
+      application.yml,services-config.yml,server-node-config.yml,services-config-qa.yml
+    # 生产meta: http://apolloconfig-api.zuzuche.info 测试meta: http://zzc-dev-configservice.zuzuche.net
+  meta: http://127.0.0.1:8080
+
+
+#------------日志-------------------
+logging:
+  config: classpath:logback-spring.xml
+  path: /data/deploy/log/${spring.application.name}
+
+
+spring.thymeleaf:
+  enabled: true
+  prefix: classpath:/templates/
+  suffix: .html
+  mode: HTML5
+  encoding: UTF-8
+  cache: false
+  servlet.content-type: text/html
