@@ -1,0 +1,75 @@
+#服务配置,服务维度,以及实例的配置
+services-config:
+  serviceList:
+    - serviceName: sms-service
+      unregisterUri: /actuator/unregister
+      autoTestUri: /actuator/autoTest
+      dockerRunOpt:
+        name: '{serviceName}'
+        volume: '/data/docker/log/{serviceName}:/data/deploy/log/{serviceName}'
+        ultraOpts:
+          - env 'JAVA_OPTS=-Xms1024m -Xmx1024m -Dspring.profiles.active=default -Denv=DEV'
+          - network host
+          - cpu-period=1000000
+          - cpu-quota=1000000
+      replicaList:
+        - ip: 192.168.0.1
+          httpPort: 9050
+        # - ip: 192.168.100.94
+        #   httpPort: 9050
+    - serviceName: jobexecutor-service
+      unregisterUri: /actuator/unregister
+      autoTestUri: /actuator/autoTest
+      dockerRunOpt:
+        name: '{serviceName}'
+        volume: '/data/docker/log/{serviceName}:/data/deploy/log/{serviceName}'
+        ultraOpts:
+          - network host
+          - cpu-period=1000000
+          - cpu-quota=1000000
+      replicaList:
+        - ip: 192.168.0.2
+          httpPort: 8011
+          ultraOpts:
+            - env 'JAVA_OPTS=-Xms512m -Xmx512m -XX:+HeapDumpOnOutOfMemoryError -XX:+PrintGCDetails -Dspring.profiles.active=test'
+            - env 'EXECUTOR_NAME=erc-jobexecutor-service'
+        - ip: 192.168.0.3
+          httpPort: 8011
+          ultraOpts:
+            - env 'JAVA_OPTS=-Xms512m -Xmx512m -XX:+HeapDumpOnOutOfMemoryError -XX:+PrintGCDetails -Dspring.profiles.active=test'
+            - env 'EXECUTOR_NAME=jobexecutor-service'
+
+#服务器节点配置, 登录服务器的方式,密码等配置
+server-node-config:
+  nodeList:
+    - ip: 192.168.0.1
+      sshPort: 22
+      authType: pubkey
+      account: root
+      password: thisispassword
+      keyPath: /Users/pan/id_rsa
+    - ip: 192.168.0.2
+      sshPort: 22
+      authType: pubkey
+      account: root
+      password: thisispassword
+      keyPath: /Users/pan/id_rsa
+    - ip: 192.168.0.3
+      sshPort: 22
+      authType: pubkey
+      account: root
+      password: thisispassword
+      keyPath: /Users/pan/id_rsa
+
+
+#qa环境的服务配置，目前主要是用来探测服务的启动状况
+services-config-qa:
+  serviceList:
+    - serviceName: sms-service
+      replicaList:
+        - ip: 192.168.0.1
+          httpPort: 9050
+    - serviceName: jobexecutor-service
+      replicaList:
+        - ip: 192.168.0.2
+          httpPort: 9090
