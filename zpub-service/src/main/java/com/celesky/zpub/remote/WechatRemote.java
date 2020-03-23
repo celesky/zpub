@@ -26,7 +26,7 @@ public abstract class WechatRemote extends AbstractHttpInvoke{
      * wechat.url: https://qyapi.weixin.qq.com/cgi-bin
      * wechat.corpId: ww1326b2a5049175e5
      * wechat.robotAppId: 1000031
-     * wechat.robotAppSecret: c8bj-OTrJvJrS80ZJ0-WuPSNFyAdeguVa94PXnE_9zg
+     * wechat.robotAppSecret: xxxx
      */
     @Value("${wechat.url}")
     private String url;
