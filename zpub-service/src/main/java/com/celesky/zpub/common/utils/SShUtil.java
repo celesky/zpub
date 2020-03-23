@@ -186,10 +186,10 @@ public class SShUtil {
 
     public static void main(String[] args) {
         ServerNodeConfig.Node node = ServerNodeConfig.Node.builder()
-                .ip("192.168.100.96")
+                .ip("192.168.0.1")
                 .account("root")
                 .authType("pwd")
-                .password("Fonw2ykwUpSRZUIq,")
+                .password("xxxx")
                 .sshPort(22)
                 .build();
         Connection conn = SShUtil.login(node);
